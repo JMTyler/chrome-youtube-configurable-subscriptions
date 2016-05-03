@@ -1,4 +1,6 @@
 
+var $btnBack;
+
 var apiKey = 'XXXXX';
 var subscriptions = [
 	{
@@ -13,51 +15,76 @@ var subscriptions = [
 	}
 ];
 
-document.addEventListener('DOMContentLoaded', function() {
+var loadSubscriptionList = function() {
 	var $li;
 	var $lstSubs = document.getElementById('lstSubscriptions');
-	for (var i = 0; i < subscriptions.length; i++) {
-		$li = document.createElement('li');
-		$li.innerHTML = '<a href="#">' + subscriptions[i].label + '</a>';
-		$lstSubs.appendChild($li);
+	var $lstVids = document.getElementById('lstVideos');
+	var $lblStatus = document.getElementById('lblStatus');
 
+	$lstSubs.innerHTML = '';
+	$lstVids.innerHTML = '';
+	$lblStatus.innerHTML = '';
+	$btnBack.style.display = 'none';
+
+	for (var i = 0; i < subscriptions.length; i++) {
 		(function() {
-			var closureI = i;
+			var sub = subscriptions[i];
+
+			$li = document.createElement('li');
+			$li.innerHTML = '<a href="#">' + sub.label + '</a>';
+			$lstSubs.appendChild($li);
+
 			$li.onclick = function() {
-				console.log('loading up ' + subscriptions[closureI].label);
+				loadSubscription(sub);
 			};
 		})();
 	}
+};
 
-	var $btnTest = document.getElementById('btnTest');
-	$btnTest.onclick = function() {
-		var req = new XMLHttpRequest();
+var loadSubscription = function(options) {
+	var $lstSubs = document.getElementById('lstSubscriptions');
+	var $lstVids = document.getElementById('lstVideos');
+	var $lblStatus = document.getElementById('lblStatus');
 
-		req.onload = function() {
-			document.getElementById('lblStatus').innerText = 'SUCCESS';
-			var res = JSON.parse(req.responseText);
-			var $lstVideos = document.getElementById('lstVideos');
+	$lstSubs.innerHTML = '';
 
-			var $li;
-			var videoTitle;
-			var videoUri;
-			for (var j = 0; j < res.items.length; j++) {
-				videoTitle = res.items[j].snippet.title;
-				videoUri = 'https://www.youtube.com/watch?v=' + res.items[j].id.videoId;
+	var req = new XMLHttpRequest();
+	req.onload = function() {
+		var $li;
+		var videoTitle;
+		var videoUri;
 
-				$li = document.createElement('li');
-				$li.innerHTML = '<a href="' + videoUri + '">' + videoTitle + '</a>';
-				$lstVideos.appendChild($li);
-			}
-		};
+		$lblStatus.innerText = 'SUCCESS: ' + options.label;
+		$btnBack.style.display = '';
 
-		req.onerror = function() {
-			document.getElementById('lblStatus').innerText = 'ERROR';
-			console.error('ERROR', arguments);
-		};
+		var res = JSON.parse(req.responseText);
+		for (var j = 0; j < res.items.length; j++) {
+			videoTitle = res.items[j].snippet.title;
+			videoUri = 'https://www.youtube.com/watch?v=' + res.items[j].id.videoId;
 
-		req.open('GET', 'https://www.googleapis.com/youtube/v3/search?key=&part=snippet&type=video&q=&channelId=&order=date', true);
-		req.setRequestHeader('Cache-Control', 'no-cache');
-		req.send(null);
+			$li = document.createElement('li');
+			$li.innerHTML = '<a href="' + videoUri + '">' + videoTitle + '</a>';
+			$lstVids.appendChild($li);
+		}
 	};
+
+	req.onerror = function() {
+		document.getElementById('lblStatus').innerText = 'ERROR loading ' + options.label;
+		console.error('ERROR', arguments);
+	};
+
+	req.open('GET', 'https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&order=date&channelId='+ options.channelId +'&q='+ options.query +'&key='+ apiKey, true);
+	req.setRequestHeader('Cache-Control', 'no-cache');
+	req.send(null);
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+	$btnBack = document.getElementById('btnBack');
+	$btnBack.onclick = function() {
+		loadSubscriptionList();
+	};
+
+	loadSubscriptionList();
 });
+
+
