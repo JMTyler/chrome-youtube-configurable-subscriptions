@@ -1,0 +1,12 @@
+{
+	"name": "YouTube - Configurable Subscriptions",
+	"description": "Subscribe to not just regular YouTube channels, but specific series on those channels or search queries.",
+	"version": "0.1.0",
+	"browser_action": {
+		"default_popup": "popup.html"
+	},
+	"permissions": [
+		"https://www.googleapis.com/*"
+	],
+	"manifest_version": 2
+}
