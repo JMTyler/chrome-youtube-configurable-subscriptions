@@ -8,12 +8,16 @@ var subscriptions = [
 		channelId: 'UCu17Sme-KE87ca9OTzP0p7g',
 		query: 'The+Forest',
 		sort_order: 'DESC',
+		showWatchedVideos: false,
+		unwatched: ['sxLPk1nj-ug', 'vE-t9K-rVxA'],
 	},
 	{
 		label: 'BdoubleO',
 		channelId: 'UClu2e7S8atp6tG2galK9hgg',
 		query: 'Crewcraft+Minecraft+Server',
 		sort_order: 'ASC',
+		showWatchedVideos: true,
+		unwatched: ['IrLGzTeDNeM'],
 	}
 ];
 
@@ -72,6 +76,10 @@ var loadSubscription = function(options) {
 		}
 
 		for (var j = start; j != end; j += step) {
+			if (!options.showWatchedVideos && !options.unwatched.includes(res.items[j].id.videoId)) {
+				continue;
+			}
+
 			videoTitle = res.items[j].snippet.title;
 			videoUri = 'https://www.youtube.com/watch?v=' + res.items[j].id.videoId;
 
