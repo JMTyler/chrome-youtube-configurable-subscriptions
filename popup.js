@@ -76,7 +76,8 @@ var loadSubscription = function(options) {
 		}
 
 		for (var j = start; j != end; j += step) {
-			if (!options.showWatchedVideos && !options.unwatched.includes(res.items[j].id.videoId)) {
+			var isWatched = !options.unwatched.includes(res.items[j].id.videoId);
+			if (!options.showWatchedVideos && isWatched) {
 				continue;
 			}
 
@@ -84,7 +85,7 @@ var loadSubscription = function(options) {
 			videoUri = 'https://www.youtube.com/watch?v=' + res.items[j].id.videoId;
 
 			$li = document.createElement('li');
-			$li.innerHTML = '<a href="' + videoUri + '">' + videoTitle + '</a>';
+			$li.innerHTML = (isWatched ? '[W]' : '') + ' <a href="' + videoUri + '">' + videoTitle + '</a>';
 			$lstVids.appendChild($li);
 		}
 	};
