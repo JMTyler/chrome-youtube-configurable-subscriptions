@@ -7,11 +7,13 @@ var subscriptions = [
 		label: 'VintageBeef',
 		channelId: 'UCu17Sme-KE87ca9OTzP0p7g',
 		query: 'The+Forest',
+		sort_order: 'DESC',
 	},
 	{
 		label: 'BdoubleO',
 		channelId: 'UClu2e7S8atp6tG2galK9hgg',
 		query: 'Crewcraft+Minecraft+Server',
+		sort_order: 'ASC',
 	}
 ];
 
@@ -57,8 +59,19 @@ var loadSubscription = function(options) {
 		$lblStatus.innerText = 'SUCCESS: ' + options.label;
 		$btnBack.style.display = '';
 
+		var start, end, step;
 		var res = JSON.parse(req.responseText);
-		for (var j = 0; j < res.items.length; j++) {
+		if (options.sort_order === 'DESC') {
+			start = 0;
+			end = res.items.length;
+			step = 1;
+		} else if (options.sort_order === 'ASC') {
+			start = res.items.length - 1;
+			end = -1;
+			step = -1;
+		}
+
+		for (var j = start; j != end; j += step) {
 			videoTitle = res.items[j].snippet.title;
 			videoUri = 'https://www.youtube.com/watch?v=' + res.items[j].id.videoId;
 
