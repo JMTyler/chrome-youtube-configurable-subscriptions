@@ -1,14 +1,21 @@
 <!doctype html>
 <html>
 	<head>
+		<link rel="stylesheet" type="text/css" href="lib/jquery-ui/jquery-ui.min.css" />
+		<style>
+			.ui-widget {
+				font-size: 1.4em;
+			}
+		</style>
+
 		<script type="text/javascript" src="lib/jquery/jquery-2.2.3.min.js"></script>
+		<script type="text/javascript" src="lib/jquery-ui/jquery-ui.min.js"></script>
 
 		<script src="popup.js"></script>
 	</head>
 	<body style="width: 30em;">
 		<div id="lblStatus"></div>
-		<ul id="lstSubscriptions"></ul>
-		<ul id="lstVideos"></ul>
+		<div id="content"></div>
 		<button id="btnBack" style="display: none;">Back</button>
 	</body>
 </html>

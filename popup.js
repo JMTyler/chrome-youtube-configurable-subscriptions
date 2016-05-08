@@ -23,36 +23,37 @@ var subscriptions = [
 
 var loadSubscriptionList = function() {
 	var $li;
-	var $lstSubs = $('#lstSubscriptions');
-	var $lstVids = $('#lstVideos');
 	var $lblStatus = $('#lblStatus');
+	var $content = $('#content');
 
-	$lstSubs.html('');
-	$lstVids.html('');
 	$lblStatus.html('');
+	$content.html('');
 	$btnBack.css('display', 'none');
 
+	var $lstSubs = $('<ul/>');
 	for (var i = 0; i < subscriptions.length; i++) {
 		(function() {
 			var sub = subscriptions[i];
 
 			$li = $('<li/>');
-			$li.html('<a href="#">' + sub.label + '</a>');
-			$lstSubs.append($li);
-
+			$li.html('<div>' + sub.label + '</div>');
 			$li.click(function() {
 				loadSubscription(sub);
 			});
+
+			$lstSubs.append($li);
 		})();
 	}
+	$content.html($lstSubs);
+	$lstSubs.menu();
 };
 
 var loadSubscription = function(options) {
-	var $lstSubs = $('#lstSubscriptions');
-	var $lstVids = $('#lstVideos');
 	var $lblStatus = $('#lblStatus');
+	var $content = $('#content');
 
-	$lstSubs.html('');
+	$lblStatus.html('');
+	$content.html('');
 
 	var req = new XMLHttpRequest();
 	req.onload = function() {
@@ -75,6 +76,7 @@ var loadSubscription = function(options) {
 			step = -1;
 		}
 
+		var $lstVids = $('<ul/>');
 		for (var j = start; j != end; j += step) {
 			var isWatched = !options.unwatched.includes(res.items[j].id.videoId);
 			if (!options.showWatchedVideos && isWatched) {
@@ -88,6 +90,8 @@ var loadSubscription = function(options) {
 			$li.html((isWatched ? '[W]' : '') + ' <a href="' + videoUri + '">' + videoTitle + '</a>');
 			$lstVids.append($li);
 		}
+		$content.html($lstVids);
+		$lstVids.menu();
 	};
 
 	req.onerror = function() {
