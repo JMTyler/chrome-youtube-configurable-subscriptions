@@ -6,7 +6,8 @@
 		"default_popup": "popup.html"
 	},
 	"permissions": [
-		"https://www.googleapis.com/*"
+		"https://www.googleapis.com/*",
+		"storage"
 	],
 	"manifest_version": 2
 }

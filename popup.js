@@ -1,7 +1,6 @@
 
 var $btnBack;
 
-var apiKey = 'XXXXX';
 var subscriptions = [
 	{
 		label: 'VintageBeef',
@@ -99,12 +98,14 @@ var loadSubscription = function(options) {
 		console.error('ERROR', arguments);
 	};
 
-	req.open('GET', 'https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&order=date&channelId='+ options.channelId +'&q='+ options.query +'&key='+ apiKey, true);
+	req.open('GET', 'https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&order=date&channelId='+ options.channelId +'&q='+ options.query +'&key='+ jmtyler.settings.get('api_key'), true);
 	req.setRequestHeader('Cache-Control', 'no-cache');
 	req.send(null);
 };
 
 document.addEventListener('DOMContentLoaded', function() {
+	jmtyler.settings.init('local');
+
 	$btnBack = $('#btnBack');
 	$btnBack.click(function() {
 		loadSubscriptionList();
