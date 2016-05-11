@@ -1,26 +1,9 @@
 
 var $btnBack;
 
-var subscriptions = [
-	{
-		label: 'VintageBeef',
-		channelId: 'UCu17Sme-KE87ca9OTzP0p7g',
-		query: 'The+Forest',
-		sort_order: 'DESC',
-		showWatchedVideos: false,
-		unwatched: ['sxLPk1nj-ug', 'vE-t9K-rVxA'],
-	},
-	{
-		label: 'BdoubleO',
-		channelId: 'UClu2e7S8atp6tG2galK9hgg',
-		query: 'Crewcraft+Minecraft+Server',
-		sort_order: 'ASC',
-		showWatchedVideos: true,
-		unwatched: ['IrLGzTeDNeM'],
-	}
-];
-
 var loadSubscriptionList = function() {
+	var subscriptions = jmtyler.memory.get('subscriptions');
+
 	var $li;
 	var $lblStatus = $('#lblStatus');
 	var $content = $('#content');
@@ -105,13 +88,12 @@ var loadSubscription = function(options) {
 
 document.addEventListener('DOMContentLoaded', function() {
 	jmtyler.settings.init('local');
+	jmtyler.memory.init('local', function() {
+		loadSubscriptionList();
+	});
 
 	$btnBack = $('#btnBack');
 	$btnBack.click(function() {
 		loadSubscriptionList();
 	});
-
-	loadSubscriptionList();
 });
-
-

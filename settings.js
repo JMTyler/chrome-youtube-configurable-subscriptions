@@ -37,6 +37,7 @@ jmtyler.settings = (function()
 				return _settings[key];
 			}
 
+			// TODO: Should probably clone defaults into _settings when accessed, so I don't mess up users' expectations if I change a default and to ensure that nested objects in defaults actually get saved.
 			if (typeof(_defaults[key]) != 'undefined') {
 				return _defaults[key];
 			}
@@ -54,13 +55,12 @@ jmtyler.settings = (function()
 		{
 			if (typeof(key) == 'undefined' || key === null) {
 				_settings = {};
-				_save();
+				_commit();
 				return this;
 			}
 
-			_load();
 			delete _settings[key];
-			_save();
+			_commit();
 
 			return this;
 		},
