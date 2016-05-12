@@ -5,9 +5,14 @@
 	"browser_action": {
 		"default_popup": "popup.html"
 	},
+	"background": {
+		"scripts": ["settings.js", "memory.js", "event_syncSubscriptions.js"],
+		"persistent": false
+	},
 	"permissions": [
 		"https://www.googleapis.com/*",
-		"storage"
+		"storage",
+		"alarms"
 	],
 	"manifest_version": 2
 }

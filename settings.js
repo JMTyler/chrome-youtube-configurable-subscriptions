@@ -16,14 +16,22 @@ jmtyler.settings = (function()
 	};
 
 	return {
-		init: function(resource)
+		init: function(resource, callback)
 		{
 			_resource = chrome.storage[resource];
+			this.reload(callback);
+			return this;
+		},
+		reload: function(callback)
+		{
+			callback = callback || function(){};
+
 			_resource.get('settings', function(storage) {
 				if (!storage.settings) {
 					storage.settings = {};
 				}
 				_settings = storage.settings;
+				return callback();
 			});
 			return this;
 		},
