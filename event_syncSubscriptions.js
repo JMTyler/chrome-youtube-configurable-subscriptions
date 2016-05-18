@@ -20,26 +20,33 @@
 
 		var subscriptions = jmtyler.memory.get('subscriptions');
 		Promise.all(subscriptions.map(function(sub) {
-			return new Promise(function(resolve, reject) {
-				var req = new XMLHttpRequest();
-				req.onload = function() {
-					var res = JSON.parse(req.responseText);
-					sub.items = res.items;
-					return resolve(sub);
-				};
-
-				req.onerror = function(err) {
-					return reject(err);
-				};
-
-				req.open('GET', 'https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&order=date&channelId='+ sub.channelId +'&q='+ sub.query +'&key='+ jmtyler.settings.get('api_key'), true);
-				req.setRequestHeader('Cache-Control', 'no-cache');
-				req.send(null);
+			return fetchSubscriptionPage(sub, 0).then(function(res) {
+				// TODO: This XHR is not actually to update the renderable list of videos.. just add new ones to the unwatched list.
+				//sub.items = res.items;
 			});
 		})).then(function() {
-			jmtyler.memory.set('subscriptions', subscriptions);
+			//jmtyler.memory.set('subscriptions', subscriptions);
 		}).catch(function() {
 			console.error('ERROR', arguments);
 		});
 	});
+
+	var fetchSubscriptionPage = function(sub, page)
+	{
+		return new Promise(function(resolve, reject) {
+			var req = new XMLHttpRequest();
+			req.onload = function() {
+				var res = JSON.parse(req.responseText);
+				return resolve(res);
+			};
+
+			req.onerror = function(err) {
+				return reject(err);
+			};
+
+			req.open('GET', 'https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&order=date&channelId='+ sub.channelId +'&q='+ sub.query +'&key='+ jmtyler.settings.get('api_key'), true);
+			req.setRequestHeader('Cache-Control', 'no-cache');
+			req.send(null);
+		});
+	};
 })();

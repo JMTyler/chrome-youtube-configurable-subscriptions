@@ -27,55 +27,96 @@ var loadSubscriptionList = function() {
 };
 
 var loadSubscription = function(index) {
-	var subscriptions = jmtyler.memory.get('subscriptions');
-	var options = subscriptions[index];
-
 	var $lblStatus = $('#lblStatus');
 	var $content = $('#content');
 
 	$lblStatus.html('');
 	$content.html('');
 
-	$lblStatus.text('SUCCESS: ' + options.label);
-	$btnBack.css('display', '');
-
-	var start, end, step;
-	if (options.sort_order === 'DESC') {
-		start = 0;
-		end = options.items.length;
-		step = 1;
-	} else if (options.sort_order === 'ASC') {
-		start = options.items.length - 1;
-		end = -1;
-		step = -1;
-	}
+	var subscriptions = jmtyler.memory.get('subscriptions');
+	var subscription = subscriptions[index];
 
 	var $lstVids = $('<ul/>');
-	for (var j = start; j != end; j += step) {
-		var isWatched = !options.unwatched.includes(options.items[j].id.videoId);
-		if (!options.showWatchedVideos && isWatched) {
-			continue;
+	loadSubscriptionPage(subscription, 0, $lstVids).then(function() {
+		$lblStatus.text('SUCCESS: ' + subscription.label);
+		$btnBack.css('display', '');
+
+		$content.html($lstVids);
+		$lstVids.menu();
+	}).catch(function() {
+		$lblStatus.text('ERROR: ' + JSON.stringify(arguments));
+	});
+};
+
+var loadSubscriptionPage = function(subscription, page, $lstVids)
+{
+	return fetchSubscriptionPage(subscription, page).then(function(res) {
+		var start, end, step;
+		// TODO: Can only modify sort by oldest first (ASC) if watched videos are hidden.
+		if (subscription.sort_order === 'DESC') {
+			start = 0;
+			end = res.items.length;
+			step = 1;
+		} else if (subscription.sort_order === 'ASC') {
+			start = res.items.length - 1;
+			end = -1;
+			step = -1;
 		}
 
-		(function() {
-			var videoTitle = options.items[j].snippet.title;
-			var videoUri = 'https://www.youtube.com/watch?v=' + options.items[j].id.videoId;
+		$lstVids.find('> :last-child').remove();
 
-			var $li = $('<li/>');
-			$li.html('<div>' + (isWatched ? '[W]' : '') + videoTitle + '</div>');
-			$li.click(function(event) {
-				var isBackgroundTab = event.ctrlKey || event.button == 1;
-				chrome.tabs.create({
-					//url    : videoUri,
-					url : 'javascript:document.write("' + videoTitle + '");',
-					active : !isBackgroundTab,
+		for (var j = start; j != end; j += step) {
+			var isWatched = !subscription.unwatched.includes(res.items[j].id.videoId);
+			if (!subscription.showWatchedVideos && isWatched) {
+				continue;
+			}
+
+			(function() {
+				var videoTitle = res.items[j].snippet.title;
+				var videoUri = 'https://www.youtube.com/watch?v=' + res.items[j].id.videoId;
+
+				var $li = $('<li/>');
+				$li.html('<div>' + (isWatched ? '[W]' : '') + videoTitle + '</div>');
+				$li.click(function(event) {
+					var isBackgroundTab = event.ctrlKey || event.button == 1;
+					chrome.tabs.create({
+						//url    : videoUri,
+						url : 'javascript:document.write("' + videoTitle + '");',
+						active : !isBackgroundTab,
+					});
 				});
+				$lstVids.append($li);
+			})();
+		}
+
+		var $li = $('<li/>');
+		$li.html('<div style="text-align: center;">' + 'Load More' + '</div>');
+		$li.click(function(event) {
+			loadSubscriptionPage(subscription, page + 1, $lstVids).then(function() {
+				$lstVids.menu('refresh');
 			});
-			$lstVids.append($li);
-		})();
-	}
-	$content.html($lstVids);
-	$lstVids.menu();
+		});
+		$lstVids.append($li);
+	});
+};
+
+var fetchSubscriptionPage = function(sub, page)
+{
+	return new Promise(function(resolve, reject) {
+		var req = new XMLHttpRequest();
+		req.onload = function() {
+			var res = JSON.parse(req.responseText);
+			return resolve(res);
+		};
+
+		req.onerror = function(err) {
+			return reject(err);
+		};
+
+		req.open('GET', 'https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&order=date&channelId='+ sub.channelId +'&q='+ sub.query +'&key='+ jmtyler.settings.get('api_key'), true);
+		req.setRequestHeader('Cache-Control', 'no-cache');
+		req.send(null);
+	});
 };
 
 document.addEventListener('DOMContentLoaded', function() {
