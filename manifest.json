@@ -12,7 +12,8 @@
 	"permissions": [
 		"https://www.googleapis.com/*",
 		"storage",
-		"alarms"
+		"alarms",
+		"tabs"
 	],
 	"manifest_version": 2
 }

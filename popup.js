@@ -36,10 +36,6 @@ var loadSubscription = function(index) {
 	$lblStatus.html('');
 	$content.html('');
 
-	var $li;
-	var videoTitle;
-	var videoUri;
-
 	$lblStatus.text('SUCCESS: ' + options.label);
 	$btnBack.css('display', '');
 
@@ -61,12 +57,22 @@ var loadSubscription = function(index) {
 			continue;
 		}
 
-		videoTitle = options.items[j].snippet.title;
-		videoUri = 'https://www.youtube.com/watch?v=' + options.items[j].id.videoId;
+		(function() {
+			var videoTitle = options.items[j].snippet.title;
+			var videoUri = 'https://www.youtube.com/watch?v=' + options.items[j].id.videoId;
 
-		$li = $('<li/>');
-		$li.html((isWatched ? '[W]' : '') + ' <a href="' + videoUri + '">' + videoTitle + '</a>');
-		$lstVids.append($li);
+			var $li = $('<li/>');
+			$li.html('<div>' + (isWatched ? '[W]' : '') + videoTitle + '</div>');
+			$li.click(function(event) {
+				var isBackgroundTab = event.ctrlKey || event.button == 1;
+				chrome.tabs.create({
+					//url    : videoUri,
+					url : 'javascript:document.write("' + videoTitle + '");',
+					active : !isBackgroundTab,
+				});
+			});
+			$lstVids.append($li);
+		})();
 	}
 	$content.html($lstVids);
 	$lstVids.menu();
@@ -83,3 +89,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		loadSubscriptionList();
 	});
 });
+
+function clearSubscriptionVideos() {
+	var subs = jmtyler.memory.get('subscriptions');
+	subs.forEach(function(sub) {
+		sub.items = [];
+	});
+	jmtyler.memory.set('subscriptions', subs);
+}
