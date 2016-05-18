@@ -18,16 +18,40 @@
 
 		console.log(new Date().toLocaleTimeString(), 'fetching!');
 
-		var subscriptions = jmtyler.memory.get('subscriptions');
-		Promise.all(subscriptions.map(function(sub) {
-			return fetchSubscriptionPage(sub, 0).then(function(res) {
-				// TODO: This XHR is not actually to update the renderable list of videos.. just add new ones to the unwatched list.
-				//sub.items = res.items;
+		jmtyler.memory.reload(function() {
+			var subscriptions = jmtyler.memory.get('subscriptions');
+			Promise.all(subscriptions.map(function(sub) {
+				return fetchSubscriptionPage(sub, 0).then(function(res) {
+					var videoIds = res.items.map(function(item) {
+						return item.id.videoId;
+					});
+					// _.difference
+					var hasNewVideos = false;
+					videoIds.forEach(function(videoId) {
+						if (!sub.firstPage.includes(videoId)) {
+							hasNewVideos = true;
+							// _.find
+							res.items.forEach(function(item) {
+								if (item.id.videoId === videoId) {
+									sub.unwatched[videoId] = item;
+								}
+							});
+						}
+					});
+					if (hasNewVideos) {
+						sub.firstPage = videoIds;
+						console.log('NEW THINGS!');
+					} else {
+						console.log('** all up to date!');
+					}
+					// TODO: This XHR is not actually to update the renderable list of videos.. just add new ones to the unwatched list.
+					//sub.items = res.items;
+				});
+			})).then(function() {
+				jmtyler.memory.set('subscriptions', subscriptions);
+			}).catch(function() {
+				console.error('ERROR', arguments);
 			});
-		})).then(function() {
-			//jmtyler.memory.set('subscriptions', subscriptions);
-		}).catch(function() {
-			console.error('ERROR', arguments);
 		});
 	});
 

@@ -67,7 +67,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids)
 		$lstVids.find('> :last-child').remove();
 
 		for (var j = start; j != end; j += step) {
-			var isWatched = !subscription.unwatched.includes(res.items[j].id.videoId);
+			var isWatched = typeof subscription.unwatched[res.items[j].id.videoId] === 'undefined';
 			if (!subscription.showWatchedVideos && isWatched) {
 				//continue;
 			}
