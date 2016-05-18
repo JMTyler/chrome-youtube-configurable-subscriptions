@@ -1,5 +1,6 @@
 
 var $btnBack;
+var pageTokens = [];
 
 var loadSubscriptionList = function() {
 	var subscriptions = jmtyler.memory.get('subscriptions');
@@ -68,7 +69,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids)
 		for (var j = start; j != end; j += step) {
 			var isWatched = !subscription.unwatched.includes(res.items[j].id.videoId);
 			if (!subscription.showWatchedVideos && isWatched) {
-				continue;
+				//continue;
 			}
 
 			(function() {
@@ -106,6 +107,15 @@ var fetchSubscriptionPage = function(sub, page)
 		var req = new XMLHttpRequest();
 		req.onload = function() {
 			var res = JSON.parse(req.responseText);
+
+			if (page - 1 >= 0 && typeof res.prevPageToken !== 'undefined') {
+				pageTokens[page - 1] = res.prevPageToken;
+			}
+
+			if (typeof res.nextPageToken !== 'undefined') {
+				pageTokens[page + 1] = res.nextPageToken;
+			}
+
 			return resolve(res);
 		};
 
@@ -113,7 +123,7 @@ var fetchSubscriptionPage = function(sub, page)
 			return reject(err);
 		};
 
-		req.open('GET', 'https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&order=date&channelId='+ sub.channelId +'&q='+ sub.query +'&key='+ jmtyler.settings.get('api_key'), true);
+		req.open('GET', 'https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&order=date&maxResults=5&channelId='+ sub.channelId +'&q='+ sub.query +'&key='+ jmtyler.settings.get('api_key') + (page == 0 ? '' : '&pageToken='+ pageTokens[page]), true);
 		req.setRequestHeader('Cache-Control', 'no-cache');
 		req.send(null);
 	});
