@@ -76,12 +76,14 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 				var videoId = res.items[j].id.videoId;
 				var videoTitle = res.items[j].snippet.title;
 				var videoUri = 'https://www.youtube.com/watch?v=' + videoId;
+				var thumbnail = res.items[j].snippet.thumbnails.default;
 
 				var $li = $('<li/>');
 				if (!isWatched) {
 					$li.css('background', '#f9d1d1');
 				}
-				$li.html('<div>' + (isWatched ? '[W]' : '') + videoTitle + '</div>');
+
+				$li.html('<div style="text-align: center; padding: 10px 0px;"><img src="'+thumbnail.url+'" style="width: '+thumbnail.width.toString()+'px; height: '+thumbnail.height.toString()+'px;" /><div>' + videoTitle + '</div></div>');
 				$li.click(function(event) {
 					var isBackgroundTab = event.ctrlKey || event.button == 1;
 					chrome.tabs.create({
