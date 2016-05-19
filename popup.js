@@ -16,7 +16,7 @@ var loadSubscriptionList = function() {
 	var $lstSubs = $('<ul/>');
 	subscriptions.forEach(function(sub, i) {
 		$li = $('<li/>');
-		$li.html('<div>' + sub.label + '</div>');
+		$li.html('<div>' + sub.label + ' (' + sub.unwatchedCount + ')' + '</div>');
 		$li.click(function() {
 			loadSubscription(i);
 		});
