@@ -38,7 +38,7 @@ var loadSubscription = function(index) {
 	var subscription = subscriptions[index];
 
 	var $lstVids = $('<ul/>');
-	loadSubscriptionPage(subscription, 0, $lstVids).then(function() {
+	loadSubscriptionPage(subscription, 0, $lstVids, subscriptions, index).then(function() {
 		$lblStatus.text('SUCCESS: ' + subscription.label);
 		$btnBack.css('display', '');
 
@@ -49,7 +49,7 @@ var loadSubscription = function(index) {
 	});
 };
 
-var loadSubscriptionPage = function(subscription, page, $lstVids)
+var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions, subIndex)
 {
 	return fetchSubscriptionPage(subscription, page).then(function(res) {
 		var start, end, step;
@@ -73,8 +73,9 @@ var loadSubscriptionPage = function(subscription, page, $lstVids)
 			}
 
 			(function() {
+				var videoId = res.items[j].id.videoId;
 				var videoTitle = res.items[j].snippet.title;
-				var videoUri = 'https://www.youtube.com/watch?v=' + res.items[j].id.videoId;
+				var videoUri = 'https://www.youtube.com/watch?v=' + videoId;
 
 				var $li = $('<li/>');
 				$li.html('<div>' + (isWatched ? '[W]' : '') + videoTitle + '</div>');
@@ -85,6 +86,19 @@ var loadSubscriptionPage = function(subscription, page, $lstVids)
 						url : 'javascript:document.write("' + videoTitle + '");',
 						active : !isBackgroundTab,
 					});
+
+					if (typeof subscription.unwatched[videoId] !== 'undefined') {
+						subscription.unwatchedCount--;
+						delete subscription.unwatched[videoId];
+						subscriptions[subIndex] = subscription;
+						jmtyler.memory.set('subscriptions', subscriptions);
+
+						var totalUnwatchedCount = 0;
+						subscriptions.forEach(function(sub) {
+							totalUnwatchedCount += sub.unwatchedCount;
+						});
+						chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+					}
 				});
 				$lstVids.append($li);
 			})();
