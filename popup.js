@@ -78,6 +78,9 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 				var videoUri = 'https://www.youtube.com/watch?v=' + videoId;
 
 				var $li = $('<li/>');
+				if (!isWatched) {
+					$li.css('background', '#f9d1d1');
+				}
 				$li.html('<div>' + (isWatched ? '[W]' : '') + videoTitle + '</div>');
 				$li.click(function(event) {
 					var isBackgroundTab = event.ctrlKey || event.button == 1;
