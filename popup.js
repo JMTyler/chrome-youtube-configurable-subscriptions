@@ -2,6 +2,8 @@
 var $btnBack;
 var pageTokens = [];
 
+var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+
 var loadSubscriptionList = function() {
 	var subscriptions = jmtyler.memory.get('subscriptions');
 
@@ -73,17 +75,19 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 			}
 
 			(function() {
-				var videoId = res.items[j].id.videoId;
-				var videoTitle = res.items[j].snippet.title;
+				var item = res.items[j];
+				var videoId = item.id.videoId;
+				var videoTitle = item.snippet.title;
 				var videoUri = 'https://www.youtube.com/watch?v=' + videoId;
-				var thumbnail = res.items[j].snippet.thumbnails.default;
+				var thumbnail = item.snippet.thumbnails.default;
+				var publishDate = new Date(item.snippet.publishedAt);
 
 				var $li = $('<li/>');
 				if (!isWatched) {
 					$li.css('background', '#f9d1d1');
 				}
 
-				$li.html('<div style="text-align: center; padding: 10px 0px;"><img src="'+thumbnail.url+'" style="width: '+thumbnail.width.toString()+'px; height: '+thumbnail.height.toString()+'px;" /><div>' + videoTitle + '</div></div>');
+				$li.html('<div style="text-align: center; padding: 10px 0px;"><img src="'+thumbnail.url+'" style="width: '+thumbnail.width.toString()+'px; height: '+thumbnail.height.toString()+'px;" /><div>' + videoTitle + '<br/>'+(months[publishDate.getMonth()]+' '+publishDate.getDate()+', '+publishDate.getFullYear()+'; '+publishDate.getHours()+':'+publishDate.getMinutes())+'<br/>'+item.contentDetails.duration.replace('PT', '').replace('S', '').replace('M', ':')+'<br/><i>Views: '+item.statistics.viewCount+'&nbsp;&nbsp;&nbsp;Likes: '+item.statistics.likeCount+'</i></div></div>');
 				$li.click(function(event) {
 					if (typeof subscription.unwatched[videoId] !== 'undefined') {
 						subscription.unwatchedCount--;
@@ -145,6 +149,33 @@ var fetchSubscriptionPage = function(sub, page)
 		req.open('GET', 'https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&order=date&maxResults=5&channelId='+ sub.channelId +'&q='+ sub.query +'&key='+ jmtyler.settings.get('api_key') + (page == 0 ? '' : '&pageToken='+ pageTokens[page]), true);
 		req.setRequestHeader('Cache-Control', 'no-cache');
 		req.send(null);
+	}).then(function(res) {
+		return Promise.all(res.items.map(function(item) {
+			return new Promise(function(resolve, reject) {
+				var req = new XMLHttpRequest();
+				req.onload = function() {
+					var res = JSON.parse(req.responseText);
+
+					item.contentDetails = {};
+					item.contentDetails.duration = res.items[0].contentDetails.duration;
+					item.statistics = res.items[0].statistics;
+
+					return resolve(item);
+				};
+
+				req.onerror = function(err) {
+					return reject(err);
+				};
+
+				// TODO: You can pass multiple IDs to one call, so we should do that with all 5 IDs.
+				req.open('GET', 'https://www.googleapis.com/youtube/v3/videos?part=statistics%2CcontentDetails&id='+ item.id.videoId +'&key='+ jmtyler.settings.get('api_key'), true);
+				req.setRequestHeader('Cache-Control', 'no-cache');
+				req.send(null);
+			});
+		})).then(function(items) {
+			res.items = items;
+			return res;
+		});
 	});
 };
 
