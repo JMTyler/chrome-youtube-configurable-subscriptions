@@ -8,7 +8,7 @@
 	chrome.runtime.onInstalled.addListener(function() {
 		console.log(new Date().toLocaleTimeString(), 'creating alarm');
 		chrome.alarms.create('fetch_subscriptions', {
-			periodInMinutes : 1,
+			periodInMinutes : 15,
 		});
 
 		var totalUnwatchedCount = 0;
@@ -91,4 +91,26 @@
 			req.send(null);
 		});
 	};
+	
+	window.prefetchFirstPages = function() {
+		jmtyler.memory.reload(function() {
+			var subscriptions = jmtyler.memory.get('subscriptions');
+			Promise.all(subscriptions.map(function(sub) {
+				return fetchSubscriptionPage(sub, 0).then(function(res) {
+					sub.firstPage = res.items.map(function(item) {
+						return item.id.videoId;
+					});
+				});
+			})).then(function() {
+				jmtyler.memory.set('subscriptions', subscriptions);
+				var totalUnwatchedCount = 0;
+				subscriptions.forEach(function(sub) {
+					totalUnwatchedCount += sub.unwatchedCount;
+				});
+				chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+			}).catch(function() {
+				console.error('ERROR', arguments);
+			});
+		});
+	}
 })();

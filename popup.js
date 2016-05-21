@@ -69,7 +69,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 		for (var j = start; j != end; j += step) {
 			var isWatched = typeof subscription.unwatched[res.items[j].id.videoId] === 'undefined';
 			if (!subscription.showWatchedVideos && isWatched) {
-				//continue;
+				continue;
 			}
 
 			(function() {
@@ -85,13 +85,6 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 
 				$li.html('<div style="text-align: center; padding: 10px 0px;"><img src="'+thumbnail.url+'" style="width: '+thumbnail.width.toString()+'px; height: '+thumbnail.height.toString()+'px;" /><div>' + videoTitle + '</div></div>');
 				$li.click(function(event) {
-					var isBackgroundTab = event.ctrlKey || event.button == 1;
-					chrome.tabs.create({
-						//url    : videoUri,
-						url : 'javascript:document.write("' + videoTitle + '");',
-						active : !isBackgroundTab,
-					});
-
 					if (typeof subscription.unwatched[videoId] !== 'undefined') {
 						subscription.unwatchedCount--;
 						delete subscription.unwatched[videoId];
@@ -104,6 +97,13 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 						});
 						chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
 					}
+
+					var isBackgroundTab = event.ctrlKey || event.button == 1;
+					chrome.tabs.create({
+						url    : videoUri,
+						//url : 'javascript:document.write("' + videoTitle + '");',
+						active : !isBackgroundTab,
+					});
 				});
 				$lstVids.append($li);
 			})();
