@@ -116,7 +116,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 		var $li = $('<li/>');
 		$li.html('<div style="text-align: center;">' + 'Load More' + '</div>');
 		$li.click(function(event) {
-			loadSubscriptionPage(subscription, page + 1, $lstVids).then(function() {
+			loadSubscriptionPage(subscription, page + 1, $lstVids, subscriptions, subIndex).then(function() {
 				$lstVids.menu('refresh');
 			});
 		});
