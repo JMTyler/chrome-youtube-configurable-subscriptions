@@ -18,6 +18,9 @@ var loadSubscriptionList = function() {
 	var $lstSubs = $('<ul/>');
 	subscriptions.forEach(function(sub, i) {
 		$li = $('<li/>');
+		if (sub.unwatchedCount > 0) {
+			$li.css('background', '#f9d1d1');
+		}
 		$li.html('<div>' + sub.label + ' (' + sub.unwatchedCount + ')' + '</div>');
 		$li.click(function() {
 			loadSubscription(i);
@@ -87,7 +90,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 					$li.css('background', '#f9d1d1');
 				}
 
-				$li.html('<div style="text-align: center; padding: 10px 0px;"><img src="'+thumbnail.url+'" style="width: '+thumbnail.width.toString()+'px; height: '+thumbnail.height.toString()+'px;" /><div>' + videoTitle + '<br/>'+(months[publishDate.getMonth()]+' '+publishDate.getDate()+', '+publishDate.getFullYear()+'; '+publishDate.getHours()+':'+publishDate.getMinutes())+'<br/>'+item.contentDetails.duration.replace('PT', '').replace('S', '').replace('M', ':')+'<br/><i>Views: '+item.statistics.viewCount+'&nbsp;&nbsp;&nbsp;Likes: '+item.statistics.likeCount+'</i></div></div>');
+				$li.html('<div style="text-align: center; padding: 10px 0px;"><img src="'+thumbnail.url+'" style="width: '+thumbnail.width.toString()+'px; height: '+thumbnail.height.toString()+'px;" /><div>' + videoTitle + '<br/>'+(months[publishDate.getMonth()]+' '+publishDate.getDate()+', '+publishDate.getFullYear()+' @ '+publishDate.getHours()+':'+publishDate.getMinutes())+'<br/>'+item.contentDetails.duration.replace('PT', '').replace('S', '').replace('M', ':')+'<br/><i>Views: '+item.statistics.viewCount+'&nbsp;&nbsp;&nbsp;Likes: '+item.statistics.likeCount+'</i></div></div>');
 				$li.click(function(event) {
 					if (typeof subscription.unwatched[videoId] !== 'undefined') {
 						subscription.unwatchedCount--;
