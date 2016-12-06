@@ -1,4 +1,6 @@
 
+var syncSubscriptions = function() { };
+
 (function() {
 	console.log(new Date().toLocaleTimeString(), 'loading event page');
 	jmtyler.settings.init('local');
@@ -14,7 +16,9 @@
 		var totalUnwatchedCount = 0;
 		var subscriptions = jmtyler.memory.get('subscriptions');
 		subscriptions.forEach(function(sub) {
-			totalUnwatchedCount += sub.unwatchedCount;
+			if (sub.bubbleCount) {
+				totalUnwatchedCount += sub.unwatchedCount;
+			}
 		});
 		chrome.browserAction.setBadgeBackgroundColor({ color: '#00AA00' });
 		chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
@@ -25,6 +29,10 @@
 			return;
 		}
 
+		return syncSubscriptions();
+	});
+
+	syncSubscriptions = function() {
 		console.log(new Date().toLocaleTimeString(), 'fetching!');
 
 		jmtyler.memory.reload(function() {
@@ -63,14 +71,16 @@
 				jmtyler.memory.set('subscriptions', subscriptions);
 				var totalUnwatchedCount = 0;
 				subscriptions.forEach(function(sub) {
-					totalUnwatchedCount += sub.unwatchedCount;
+					if (sub.bubbleCount) {
+						totalUnwatchedCount += sub.unwatchedCount;
+					}
 				});
 				chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
 			}).catch(function() {
 				console.error('ERROR', arguments);
 			});
 		});
-	});
+	};
 
 	var fetchSubscriptionPage = function(sub, page)
 	{
@@ -105,7 +115,9 @@
 				jmtyler.memory.set('subscriptions', subscriptions);
 				var totalUnwatchedCount = 0;
 				subscriptions.forEach(function(sub) {
-					totalUnwatchedCount += sub.unwatchedCount;
+					if (sub.bubbleCount) {
+						totalUnwatchedCount += sub.unwatchedCount;
+					}
 				});
 				chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
 			}).catch(function() {

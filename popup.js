@@ -4,7 +4,17 @@ var pageTokens = [];
 
 var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
 
-var loadSubscriptionList = function() {
+var previousView = null;
+var loadView = function(channel) {
+	if (channel === null) {
+		return loadChannelList();
+	}
+
+	return loadSubscriptionList(channel);
+};
+
+var loadChannelList = function() {
+	previousView = null;
 	var subscriptions = jmtyler.memory.get('subscriptions');
 
 	var $li;
@@ -15,19 +25,71 @@ var loadSubscriptionList = function() {
 	$content.html('');
 	$btnBack.css('display', 'none');
 
-	var $lstSubs = $('<ul/>');
+	var $lstChannels = $('<ul/>');
+	var channels = {};
 	subscriptions.forEach(function(sub, i) {
+		var channel = sub.label.split('/')[0];
+		var count = sub.unwatchedCount;
+		if (typeof channels[channel] == 'undefined') {
+			channels[channel] = 0;
+		}
+		if (sub.bubbleCount) {
+			channels[channel] += count;
+		}
+	});
+
+	for (var key in channels) {
+		if (!channels.hasOwnProperty(key)) {
+			continue;
+		}
+
 		$li = $('<li/>');
-		if (sub.unwatchedCount > 0) {
+		if (channels[key] > 0) {
 			$li.css('background', '#f9d1d1');
 		}
-		$li.html('<div>' + sub.label + ' (' + sub.unwatchedCount + ')' + '</div>');
+		$li.html('<div>' + key + ' (' + channels[key] + ')' + '</div>');
+		$li.click(loadSubscriptionList.bind(this, key));
+
+		$lstChannels.append($li);
+	}
+	$content.html($lstChannels);
+	$lstChannels.menu();
+};
+
+var loadSubscriptionList = function(channel) {
+	previousView = null;
+
+	var $li;
+	var $lblStatus = $('#lblStatus');
+	var $content = $('#content');
+
+	$lblStatus.css('fontSize', 'large');
+	$lblStatus.html('');
+	$content.html('');
+
+	var $lstSubs = $('<ul/>');
+	var subscriptions = jmtyler.memory.get('subscriptions');
+	subscriptions.forEach(function(sub, i) {
+		var labelParts = sub.label.split('/');
+		var thisChannel = labelParts[0];
+		if (thisChannel != channel) {
+			return;
+		}
+
+		$li = $('<li/>');
+		if (sub.unwatchedCount > 0 && sub.bubbleCount) {
+			$li.css('background', '#f9d1d1');
+		}
+		$li.html('<div>' + labelParts[1] + ' (' + sub.unwatchedCount + ')' + '</div>');
 		$li.click(function() {
 			loadSubscription(i);
 		});
 
 		$lstSubs.append($li);
 	});
+
+	$lblStatus.text(channel);
+	$btnBack.css('display', '');
 	$content.html($lstSubs);
 	$lstSubs.menu();
 };
@@ -36,15 +98,19 @@ var loadSubscription = function(index) {
 	var $lblStatus = $('#lblStatus');
 	var $content = $('#content');
 
+	$lblStatus.css('fontSize', 'large');
 	$lblStatus.html('');
 	$content.html('');
 
 	var subscriptions = jmtyler.memory.get('subscriptions');
 	var subscription = subscriptions[index];
 
+	// set previousView to the `channel` key for this subscription
+	previousView = subscription.label.split('/')[0];
+
 	var $lstVids = $('<ul/>');
 	loadSubscriptionPage(subscription, 0, $lstVids, subscriptions, index).then(function() {
-		$lblStatus.text('SUCCESS: ' + subscription.label);
+		$lblStatus.text(subscription.label.replace('/', ' :: '));
 		$btnBack.css('display', '');
 
 		$content.html($lstVids);
@@ -185,12 +251,12 @@ var fetchSubscriptionPage = function(sub, page)
 document.addEventListener('DOMContentLoaded', function() {
 	jmtyler.settings.init('local');
 	jmtyler.memory.init('local', function() {
-		loadSubscriptionList();
+		loadChannelList();
 	});
 
-	$btnBack = $('#btnBack');
+	$btnBack = $('.btnBack');
 	$btnBack.click(function() {
-		loadSubscriptionList();
+		loadView(previousView);
 	});
 });
 

@@ -6,6 +6,15 @@
 			.ui-widget {
 				font-size: 1.4em;
 			}
+
+			.header {
+				margin: 3px 10px;
+			}
+
+			.btnBack.right {
+				position: absolute;
+				right: 15px;
+			}
 		</style>
 
 		<script type="text/javascript" src="lib/jquery/jquery-2.2.3.min.js"></script>
@@ -17,9 +26,12 @@
 	</head>
 
 	<body class="ui-widget-header" style="width: 30em;">
-		<div id="lblStatus"></div>
+		<div class="header">
+			<span id="lblStatus"></span>
+			<button class="btnBack right" style="display: none;">Back</button>
+		</div>
 		<div id="content"></div>
-		<button id="btnBack" style="display: none;">Back</button>
+		<button class="btnBack" style="display: none;">Back</button>
 	</body>
 </html>
 
