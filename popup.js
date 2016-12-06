@@ -109,7 +109,7 @@ var loadSubscription = function(index) {
 	previousView = subscription.label.split('/')[0];
 
 	var $lstVids = $('<ul/>');
-	loadSubscriptionPage(subscription, 0, $lstVids, subscriptions, index).then(function() {
+	loadSubscriptionPage(subscription, 0, $lstVids, subscriptions, index, []).then(function() {
 		$lblStatus.text(subscription.label.replace('/', ' :: '));
 		$btnBack.css('display', '');
 
@@ -120,55 +120,211 @@ var loadSubscription = function(index) {
 	});
 };
 
-var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions, subIndex)
+var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions, subIndex, subItems)
 {
 	return fetchSubscriptionPage(subscription, page).then(function(res) {
-		var start, end, step;
-		// TODO: Can only modify sort by oldest first (ASC) if watched videos are hidden.
-		if (subscription.sort_order === 'DESC') {
-			start = 0;
-			end = res.items.length;
-			step = 1;
-		} else if (subscription.sort_order === 'ASC') {
-			start = res.items.length - 1;
-			end = -1;
-			step = -1;
-		}
+		var start = 0;
+		var end = res.items.length;
+		var step = 1;
 
 		$lstVids.find('> :last-child').remove();
 
 		for (var j = start; j != end; j += step) {
-			var isWatched = typeof subscription.unwatched[res.items[j].id.videoId] === 'undefined';
-			if (!subscription.showWatchedVideos && isWatched) {
+			var isWatched = !subscription.unwatched.includes(res.items[j].id.videoId);
+			if (isWatched && subscription.isBacklog) {
 				continue;
 			}
 
-			(function() {
-				var item = res.items[j];
+			(function(index, start, end, step) {
+				var item = res.items[index];
 				var videoId = item.id.videoId;
 				var videoTitle = item.snippet.title;
 				var videoUri = 'https://www.youtube.com/watch?v=' + videoId;
-				var thumbnail = item.snippet.thumbnails.default;
+				var thumbnail = item.snippet.thumbnails.medium;
 				var publishDate = new Date(item.snippet.publishedAt);
+				var isWatched = !subscription.unwatched.includes(videoId);
+
+				var globalIndex = subItems.push(item) - 1;
 
 				var $li = $('<li/>');
-				if (!isWatched) {
-					$li.css('background', '#f9d1d1');
-				}
+				$li.addClass('videoIndex-' + globalIndex);
+				$li.html(
+					'<div style="padding: 10px 10px;">' +
+						'<span style="display: inline-block;">' +
+							'<img src="'+thumbnail.url+'" style="width: '+thumbnail.width.toString()+'px; height: '+thumbnail.height.toString()+'px;" />' +
+						'</span>' +
+						'<span style="position: absolute; margin-left: 10px; text-align: center;">' +
+							'<span style="font-size: xx-large;">' +
+								item.contentDetails.duration.replace('PT', '').replace('S', 's').replace('M', 'm ') +
+							'</span>' +
+							'<br/>' +
+							(months[publishDate.getMonth()]+' '+publishDate.getDate()+', '+publishDate.getFullYear()+' @ '+publishDate.getHours()+':'+publishDate.getMinutes()) + '<br/><br/>' +
+							'<i>Views: '+item.statistics.viewCount+'</i>' +
+							'<br/>' +
+							'<i>Likes: '+item.statistics.likeCount+'</i>' +
+							'<br/><br/>' +
+							'<div class="toggleButtons ui-controlgroup ui-controlgroup-horizontal" role="toolbar" style="text-align: left; width: 100%;">' +
+								'<button class="ui-widget ui-button ui-button-icon-only ui-controlgroup-item ui-corner-all" style="padding: 1em;">' +
+									'<span class="ui-icon"></span>' +
+								'</button>' +
+								'<div class="ui-controlgroup ui-controlgroup-vertical" role="toolbar" style="position: relative; overflow: hidden; width: 25.5px; height: 36px;">' +
+									'<button class="toggleAllUp ui-widget ui-button ui-button-icon-only ui-controlgroup-item ui-corner-tr" style="padding: 8px 0.7em; position: absolute; transition: 1s; left: -25.5px;">' +
+										'<span class="ui-icon ui-icon-arrowthickstop-1-n"></span>' +
+									'</button>' +
+									'<button class="toggleAllDown ui-widget ui-button ui-button-icon-only ui-controlgroup-item ui-corner-br" style="padding: 8px 0.7em; position: absolute; transition: 1s; top: 18px; left: -25.5px;">' +
+										'<span class="ui-icon ui-icon-arrowthickstop-1-s"></span>' +
+									'</button>' +
+								'</div>' +
+							'</div>' +
+						'</span>' +
+						'<div>' +
+							videoTitle +
+						'</div>' +
+					'</div>'
+				);
 
-				$li.html('<div style="text-align: center; padding: 10px 0px;"><img src="'+thumbnail.url+'" style="width: '+thumbnail.width.toString()+'px; height: '+thumbnail.height.toString()+'px;" /><div>' + videoTitle + '<br/>'+(months[publishDate.getMonth()]+' '+publishDate.getDate()+', '+publishDate.getFullYear()+' @ '+publishDate.getHours()+':'+publishDate.getMinutes())+'<br/>'+item.contentDetails.duration.replace('PT', '').replace('S', '').replace('M', ':')+'<br/><i>Views: '+item.statistics.viewCount+'&nbsp;&nbsp;&nbsp;Likes: '+item.statistics.likeCount+'</i></div></div>');
-				$li.click(function(event) {
-					if (typeof subscription.unwatched[videoId] !== 'undefined') {
+				var renderWatchedState = function($li, isWatched) {
+					$li.css('background', isWatched ? 'initial' : '#f9d1d1');
+					$li.find('> div').css('background', isWatched ? '' : '#f9d1d1');
+					$li.find('.toggleButtons > button .ui-icon')
+						.removeClass('ui-icon-mail-' + (isWatched ? 'closed' : 'open'))
+						.addClass('ui-icon-mail-' + (isWatched ? 'open' : 'closed'));
+				};
+				renderWatchedState($li, isWatched);
+
+				$li.find('.toggleButtons > button').click(function(event) {
+					event && event.preventDefault();
+
+					var isWatched = !subscription.unwatched.includes(videoId);
+					if (!isWatched) {
 						subscription.unwatchedCount--;
-						delete subscription.unwatched[videoId];
+						subscription.unwatched.splice(subscription.unwatched.indexOf(videoId), 1);
+						subscription.backlog.splice(subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; }), 1);
 						subscriptions[subIndex] = subscription;
 						jmtyler.memory.set('subscriptions', subscriptions);
 
-						var totalUnwatchedCount = 0;
-						subscriptions.forEach(function(sub) {
-							totalUnwatchedCount += sub.unwatchedCount;
+						chrome.browserAction.getBadgeText({}, function (text) {
+							var totalUnwatchedCount = parseInt(text, 10);
+							totalUnwatchedCount--;
+							chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
 						});
+					} else {
+						subscription.unwatchedCount++;
+						subscription.unwatched.push(videoId);
+						subscription.backlog.push(item);
+						subscriptions[subIndex] = subscription;
+						jmtyler.memory.set('subscriptions', subscriptions);
+
+						chrome.browserAction.getBadgeText({}, function (text) {
+							var totalUnwatchedCount = parseInt(text, 10);
+							totalUnwatchedCount++;
+							chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+						});
+					}
+
+					renderWatchedState($li, !isWatched);
+
+					return false;
+				});
+				$li.find('.toggleButtons > div > button.toggleAllUp').click(function(event) {
+					event && event.preventDefault();
+
+					var markAsWatched = subscription.unwatched.includes(videoId);
+					chrome.browserAction.getBadgeText({}, function (text) {
+						var totalUnwatchedCount = parseInt(text, 10);
+						for (var k = globalIndex; k >= 0; k--) {
+							var item = subItems[k];
+							var videoId = item.id.videoId;
+
+							var isWatched = !subscription.unwatched.includes(videoId);
+							if (markAsWatched && !isWatched) {
+								subscription.unwatchedCount--;
+								totalUnwatchedCount--;
+								subscription.unwatched.splice(subscription.unwatched.indexOf(videoId), 1);
+								subscription.backlog.splice(subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; }), 1);
+								subscriptions[subIndex] = subscription;
+
+								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
+							} else if (!markAsWatched && isWatched) {
+								subscription.unwatchedCount++;
+								totalUnwatchedCount++;
+								subscription.unwatched.push(videoId);
+								subscription.backlog.push(item);
+								subscriptions[subIndex] = subscription;
+
+								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
+							}
+						}
+						jmtyler.memory.set('subscriptions', subscriptions);
 						chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+					});
+
+					return false;
+				});
+				$li.find('.toggleButtons > div > button.toggleAllDown').click(function(event) {
+					event && event.preventDefault();
+
+					var markAsWatched = subscription.unwatched.includes(videoId);
+					chrome.browserAction.getBadgeText({}, function (text) {
+						var totalUnwatchedCount = parseInt(text, 10);
+						for (var k = globalIndex; k < subItems.length; k++) {
+							var item = subItems[k];
+							var videoId = item.id.videoId;
+
+							var isWatched = !subscription.unwatched.includes(videoId);
+							if (markAsWatched && !isWatched) {
+								subscription.unwatchedCount--;
+								totalUnwatchedCount--;
+								subscription.unwatched.splice(subscription.unwatched.indexOf(videoId), 1);
+								subscription.backlog.splice(subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; }), 1);
+								subscriptions[subIndex] = subscription;
+
+								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
+							} else if (!markAsWatched && isWatched) {
+								subscription.unwatchedCount++;
+								totalUnwatchedCount++;
+								subscription.unwatched.push(videoId);
+								subscription.backlog.push(item);
+								subscriptions[subIndex] = subscription;
+
+								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
+							}
+						}
+						jmtyler.memory.set('subscriptions', subscriptions);
+						chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+					});
+
+					return false;
+				});
+
+				$li.find('.toggleButtons').hover(
+					function(event) {
+						$li.find('.toggleButtons > div > button').css('left', '0px');
+						setTimeout(function() {
+							$li.find('.toggleButtons > button').removeClass('ui-corner-all').addClass('ui-corner-left');
+						}, 100);
+					},
+					function(event) {
+						$li.find('.toggleButtons > div > button').css('left', '-25.5px');
+						setTimeout(function() {
+							$li.find('.toggleButtons > button').removeClass('ui-corner-left').addClass('ui-corner-all');
+						}, 700);
+					}
+				);
+
+				$li.click(function(event) {
+					var isWatched = !subscription.unwatched.includes(videoId);
+					if (!isWatched) {
+						subscription.unwatchedCount--;
+						subscription.unwatched.splice(subscription.unwatched.indexOf(videoId), 1);
+						subscriptions[subIndex] = subscription;
+						jmtyler.memory.set('subscriptions', subscriptions);
+
+						chrome.browserAction.getBadgeText({}, function (text) {
+							var totalUnwatchedCount = parseInt(text, 10);
+							totalUnwatchedCount--;
+							chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+						});
 					}
 
 					var isBackgroundTab = event.ctrlKey || event.button == 1;
@@ -179,22 +335,37 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 					});
 				});
 				$lstVids.append($li);
-			})();
+			})(j, start, end, step);
 		}
 
 		var $li = $('<li/>');
 		$li.html('<div style="text-align: center;">' + 'Load More' + '</div>');
 		$li.click(function(event) {
-			loadSubscriptionPage(subscription, page + 1, $lstVids, subscriptions, subIndex).then(function() {
+			loadSubscriptionPage(subscription, page + 1, $lstVids, subscriptions, subIndex, subItems).then(function() {
 				$lstVids.menu('refresh');
 			});
 		});
 		$lstVids.append($li);
+	}).catch(function(err) {
+		console.error(err);
 	});
 };
 
 var fetchSubscriptionPage = function(sub, page)
 {
+	if (sub.isBacklog) {
+		var startIndex = page * 5;
+		return new Promise(function(resolve, reject) {
+			var items = [];
+			for (var i = startIndex; i < startIndex + 5; i++) {
+				items.push(sub.backlog[i]);
+			}
+			return resolve({
+				items: items,
+			});
+		});
+	}
+
 	return new Promise(function(resolve, reject) {
 		var req = new XMLHttpRequest();
 		req.onload = function() {
