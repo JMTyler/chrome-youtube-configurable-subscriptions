@@ -198,8 +198,14 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 					var isWatched = !subscription.unwatched.includes(videoId);
 					if (!isWatched) {
 						subscription.unwatchedCount--;
-						subscription.unwatched.splice(subscription.unwatched.indexOf(videoId), 1);
-						subscription.backlog.splice(subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; }), 1);
+						var unwatchedIndex = subscription.unwatched.indexOf(videoId);
+						if (unwatchedIndex > -1) {
+							subscription.unwatched.splice(unwatchedIndex, 1);
+						}
+						var backlogIndex = subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; });
+						if (backlogIndex > -1) {
+							subscription.backlog.splice(backlogIndex, 1);
+						}
 						subscriptions[subIndex] = subscription;
 						jmtyler.memory.set('subscriptions', subscriptions);
 
@@ -240,8 +246,14 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 							if (markAsWatched && !isWatched) {
 								subscription.unwatchedCount--;
 								totalUnwatchedCount--;
-								subscription.unwatched.splice(subscription.unwatched.indexOf(videoId), 1);
-								subscription.backlog.splice(subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; }), 1);
+								var unwatchedIndex = subscription.unwatched.indexOf(videoId);
+								if (unwatchedIndex > -1) {
+									subscription.unwatched.splice(unwatchedIndex, 1);
+								}
+								var backlogIndex = subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; });
+								if (backlogIndex > -1) {
+									subscription.backlog.splice(backlogIndex, 1);
+								}
 								subscriptions[subIndex] = subscription;
 
 								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
@@ -275,8 +287,14 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 							if (markAsWatched && !isWatched) {
 								subscription.unwatchedCount--;
 								totalUnwatchedCount--;
-								subscription.unwatched.splice(subscription.unwatched.indexOf(videoId), 1);
-								subscription.backlog.splice(subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; }), 1);
+								var unwatchedIndex = subscription.unwatched.indexOf(videoId);
+								if (unwatchedIndex > -1) {
+									subscription.unwatched.splice(unwatchedIndex, 1);
+								}
+								var backlogIndex = subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; });
+								if (backlogIndex > -1) {
+									subscription.backlog.splice(backlogIndex, 1);
+								}
 								subscriptions[subIndex] = subscription;
 
 								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
@@ -316,7 +334,14 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 					var isWatched = !subscription.unwatched.includes(videoId);
 					if (!isWatched) {
 						subscription.unwatchedCount--;
-						subscription.unwatched.splice(subscription.unwatched.indexOf(videoId), 1);
+						var unwatchedIndex = subscription.unwatched.indexOf(videoId);
+						if (unwatchedIndex > -1) {
+							subscription.unwatched.splice(unwatchedIndex, 1);
+						}
+						var backlogIndex = subscription.backlog.findIndex((vid) => { return vid.id.videoId === videoId; });
+						if (backlogIndex > -1) {
+							subscription.backlog.splice(backlogIndex, 1);
+						}
 						subscriptions[subIndex] = subscription;
 						jmtyler.memory.set('subscriptions', subscriptions);
 
