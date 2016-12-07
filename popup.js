@@ -209,11 +209,13 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 						subscriptions[subIndex] = subscription;
 						jmtyler.memory.set('subscriptions', subscriptions);
 
-						chrome.browserAction.getBadgeText({}, function (text) {
-							var totalUnwatchedCount = parseInt(text, 10);
-							totalUnwatchedCount--;
-							chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
-						});
+						if (subscription.bubbleCount) {
+							chrome.browserAction.getBadgeText({}, function (text) {
+								var totalUnwatchedCount = parseInt(text, 10);
+								totalUnwatchedCount--;
+								chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+							});
+						}
 					} else {
 						subscription.unwatchedCount++;
 						subscription.unwatched.push(videoId);
@@ -221,11 +223,13 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 						subscriptions[subIndex] = subscription;
 						jmtyler.memory.set('subscriptions', subscriptions);
 
-						chrome.browserAction.getBadgeText({}, function (text) {
-							var totalUnwatchedCount = parseInt(text, 10);
-							totalUnwatchedCount++;
-							chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
-						});
+						if (subscription.bubbleCount) {
+							chrome.browserAction.getBadgeText({}, function (text) {
+								var totalUnwatchedCount = parseInt(text, 10);
+								totalUnwatchedCount++;
+								chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+							});
+						}
 					}
 
 					renderWatchedState($li, !isWatched);
@@ -245,7 +249,9 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 							var isWatched = !subscription.unwatched.includes(videoId);
 							if (markAsWatched && !isWatched) {
 								subscription.unwatchedCount--;
-								totalUnwatchedCount--;
+								if (subscription.bubbleCount) {
+									totalUnwatchedCount--;
+								}
 								var unwatchedIndex = subscription.unwatched.indexOf(videoId);
 								if (unwatchedIndex > -1) {
 									subscription.unwatched.splice(unwatchedIndex, 1);
@@ -259,7 +265,9 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
 							} else if (!markAsWatched && isWatched) {
 								subscription.unwatchedCount++;
-								totalUnwatchedCount++;
+								if (subscription.bubbleCount) {
+									totalUnwatchedCount++;
+								}
 								subscription.unwatched.push(videoId);
 								subscription.backlog.push(item);
 								subscriptions[subIndex] = subscription;
@@ -286,7 +294,9 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 							var isWatched = !subscription.unwatched.includes(videoId);
 							if (markAsWatched && !isWatched) {
 								subscription.unwatchedCount--;
-								totalUnwatchedCount--;
+								if (subscription.bubbleCount) {
+									totalUnwatchedCount--;
+								}
 								var unwatchedIndex = subscription.unwatched.indexOf(videoId);
 								if (unwatchedIndex > -1) {
 									subscription.unwatched.splice(unwatchedIndex, 1);
@@ -300,7 +310,9 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
 							} else if (!markAsWatched && isWatched) {
 								subscription.unwatchedCount++;
-								totalUnwatchedCount++;
+								if (subscription.bubbleCount) {
+									totalUnwatchedCount++;
+								}
 								subscription.unwatched.push(videoId);
 								subscription.backlog.push(item);
 								subscriptions[subIndex] = subscription;
@@ -345,11 +357,13 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 						subscriptions[subIndex] = subscription;
 						jmtyler.memory.set('subscriptions', subscriptions);
 
-						chrome.browserAction.getBadgeText({}, function (text) {
-							var totalUnwatchedCount = parseInt(text, 10);
-							totalUnwatchedCount--;
-							chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
-						});
+						if (subscription.bubbleCount) {
+							chrome.browserAction.getBadgeText({}, function (text) {
+								var totalUnwatchedCount = parseInt(text, 10);
+								totalUnwatchedCount--;
+								chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+							});
+						}
 					}
 
 					var isBackgroundTab = event.ctrlKey || event.button == 1;
