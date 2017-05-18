@@ -3,8 +3,8 @@ var syncSubscriptions = function() { };
 
 (function() {
 	console.log(new Date().toLocaleTimeString(), 'loading event page');
-	jmtyler.settings.init('local');
-	jmtyler.memory.init('local');
+	jmtyler.settings.init('sync');
+	jmtyler.memory.init('sync');
 
 	syncSubscriptions = function() {
 		console.log(new Date().toLocaleTimeString(), 'fetching!');
@@ -76,8 +76,8 @@ var syncSubscriptions = function() { };
 					}
 				});
 				chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
-			}).catch(function() {
-				console.error('ERROR', arguments);
+			}).catch(function(err) {
+				console.error('ERROR', err);
 			});
 		});
 	};
@@ -88,6 +88,10 @@ var syncSubscriptions = function() { };
 			var req = new XMLHttpRequest();
 			req.onload = function() {
 				var res = JSON.parse(req.responseText);
+				if (!res.items) {
+					console.error('Failed payload:', res);
+					return reject(new Error('Subscription page fetch did not contain array of items.'));
+				}
 				return resolve(res);
 			};
 

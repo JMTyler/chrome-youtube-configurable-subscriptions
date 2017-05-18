@@ -31,9 +31,56 @@ jmtyler.memory = (function()
 		],
 	};
 
+	var _fetch = function(callback)
+	{
+		callback = callback || function(){};
+
+		var fetchChunks = function(done, chunks = [], i = 0) {
+			var key = `memory_${i}`;
+			_resource.get(key, function(storage) {
+				if (typeof(storage[key]) == 'undefined') {
+					return done(chunks);
+				}
+
+				chunks.push(storage[key]);
+				return fetchChunks(done, chunks, ++i);
+			});
+		}
+
+		fetchChunks((chunks) => {
+			var jsonstr = chunks.join('');
+			_memory = jsonstr ? JSON.parse(jsonstr) : {};
+			return callback();
+		});
+	};
+
 	var _commit = function()
 	{
-		_resource.set({ memory: _memory });
+		var i = 0;
+		var storage = {};
+
+		// split jsonstr into chunks and store them in an object indexed by `key_i`
+		var jsonstr = JSON.stringify(_memory);
+		while (jsonstr.length > 0) {
+			var index = `memory_${i++}`;
+
+			// since the key uses up some per-item quota, see how much is left for the value
+			// also trim off 2 for quotes added by storage-time `stringify`
+			var maxValueLength = chrome.storage.sync.QUOTA_BYTES_PER_ITEM - index.length - 2;
+
+			// trim down segment so it will be small enough even when run through `JSON.stringify` again at storage time
+			var valueLength = maxValueLength;
+			var segment = jsonstr.substr(0, valueLength);
+			while (JSON.stringify(segment).length > maxValueLength) {
+				segment = jsonstr.substr(0, --valueLength);
+			}
+
+			storage[index] = segment;
+			jsonstr = jsonstr.substr(valueLength);
+		}
+
+		// store all the chunks
+		_resource.set(storage);
 	};
 
 	return {
@@ -45,15 +92,7 @@ jmtyler.memory = (function()
 		},
 		reload: function(callback)
 		{
-			callback = callback || function(){};
-
-			_resource.get('memory', function(storage) {
-				if (!storage.memory) {
-					storage.memory = {};
-				}
-				_memory = storage.memory;
-				return callback();
-			});
+			_fetch(callback);
 			return this;
 		},
 		get: function(key)

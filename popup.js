@@ -459,8 +459,8 @@ var fetchSubscriptionPage = function(sub, page)
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-	jmtyler.settings.init('local');
-	jmtyler.memory.init('local', function() {
+	jmtyler.settings.init('sync');
+	jmtyler.memory.init('sync', function() {
 		loadChannelList();
 	});
 
