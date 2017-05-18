@@ -6,7 +6,7 @@
 		"default_popup": "popup.html"
 	},
 	"background": {
-		"scripts": ["settings.js", "memory.js", "event_syncSubscriptions.js"],
+		"scripts": ["settings.js", "memory.js", "db.js", "event_syncSubscriptions.js"],
 		"persistent": false
 	},
 	"permissions": [
