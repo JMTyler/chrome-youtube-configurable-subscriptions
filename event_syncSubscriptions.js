@@ -9,75 +9,78 @@ var syncSubscriptions = function() { };
 	syncSubscriptions = function() {
 		console.log(new Date().toLocaleTimeString(), 'fetching!');
 
-		jmtyler.memory.reload(function() {
-			var subscriptions = jmtyler.memory.get('subscriptions');
-			Promise.all(subscriptions.map(function(sub) {
-				return fetchSubscriptionPage(sub, 0).then(function(res) {
-					var videoIds = res.items.map(function(item) {
-						return item.id.videoId;
-					});
-					// _.difference
-					var hasNewVideos = false;
-					return Promise.all(videoIds.map(function(videoId) {
-						if (!sub.firstPage.includes(videoId)) {
-							hasNewVideos = true;
-							// _.find
-							return Promise.all(res.items.map(function(item) {
-								if (item.id.videoId === videoId) {
-									return new Promise(function(resolve, reject) {
-										var req = new XMLHttpRequest();
-										req.onload = function() {
-											var res = JSON.parse(req.responseText);
+		jmtyler.db.connect().then(() => {
+			jmtyler.db.fetchAll('Subscriptions').then((subscriptions) => {
+				Promise.all(subscriptions.map(function(sub) {
+					return fetchSubscriptionPage(sub, 0).then(function(res) {
+						var videoIds = res.items.map(function(item) {
+							return item.id.videoId;
+						});
+						// _.difference
+						var hasNewVideos = false;
+						return Promise.all(videoIds.map(function(videoId) {
+							if (!sub.firstPage.includes(videoId)) {
+								hasNewVideos = true;
+								// _.find
+								return Promise.all(res.items.map(function(item) {
+									if (item.id.videoId === videoId) {
+										return new Promise(function(resolve, reject) {
+											var req = new XMLHttpRequest();
+											req.onload = function() {
+												var res = JSON.parse(req.responseText);
 
-											item.contentDetails = {};
-											item.contentDetails.duration = res.items[0].contentDetails.duration;
-											item.statistics = res.items[0].statistics;
+												item.contentDetails = {};
+												item.contentDetails.duration = res.items[0].contentDetails.duration;
+												item.statistics = res.items[0].statistics;
 
-											// TODO: We should do a prelim fetch on subscription add to init firstPage.
-											sub.backlog.push(item);
-											sub.unwatched.push(videoId);
-											sub.unwatchedCount++;
+												// TODO: We should do a prelim fetch on subscription add to init firstPage.
+												sub.backlog.push(item);
+												sub.unwatched.push(videoId);
+												sub.unwatchedCount++;
 
-											return resolve(item);
-										};
+												return resolve(item);
+											};
 
-										req.onerror = function(err) {
-											return reject(err);
-										};
+											req.onerror = function(err) {
+												return reject(err);
+											};
 
-										// TODO: You can pass multiple IDs to one call, so we should do that with all 5 IDs.
-										req.open('GET', 'https://www.googleapis.com/youtube/v3/videos?part=statistics%2CcontentDetails&id='+ item.id.videoId +'&key='+ jmtyler.settings.get('api_key'), true);
-										req.setRequestHeader('Cache-Control', 'no-cache');
-										req.send(null);
-									});
-								}
-								return Promise.resolve();
-							}));
-						}
-						return Promise.resolve();
-					})).then(function() {
-						// TODO: Should check if new video count == page size, and check the next page just in case.
-						if (hasNewVideos) {
-							sub.firstPage = videoIds;
-							console.log('NEW THINGS!');
-						} else {
+											// TODO: You can pass multiple IDs to one call, so we should do that with all 5 IDs.
+											req.open('GET', 'https://www.googleapis.com/youtube/v3/videos?part=statistics%2CcontentDetails&id='+ item.id.videoId +'&key='+ jmtyler.settings.get('api_key'), true);
+											req.setRequestHeader('Cache-Control', 'no-cache');
+											req.send(null);
+										});
+									}
+									return Promise.resolve();
+								}));
+							}
+							return Promise.resolve();
+						})).then(function() {
+							// TODO: Should check if new video count == page size, and check the next page just in case.
+							if (hasNewVideos) {
+								console.log('NEW THINGS!');
+								sub.firstPage = videoIds;
+								return jmtyler.db.update('Subscriptions', sub);
+							}
+
 							console.log('** all up to date!');
-						}
-					}).catch(function(err) {
-						console.error(err);
+						}).catch(function(err) {
+							console.error(err);
+						});
 					});
+				})).then(function() {
+					var totalUnwatchedCount = 0;
+					subscriptions.forEach(function(sub) {
+						if (sub.bubbleCount) {
+							totalUnwatchedCount += sub.unwatchedCount;
+						}
+					});
+					chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+				}).catch(function(err) {
+					console.error('ERROR', err);
+				}).then(() => {
+					jmtyler.db.close();
 				});
-			})).then(function() {
-				jmtyler.memory.set('subscriptions', subscriptions);
-				var totalUnwatchedCount = 0;
-				subscriptions.forEach(function(sub) {
-					if (sub.bubbleCount) {
-						totalUnwatchedCount += sub.unwatchedCount;
-					}
-				});
-				chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
-			}).catch(function(err) {
-				console.error('ERROR', err);
 			});
 		});
 	};
@@ -145,25 +148,28 @@ var syncSubscriptions = function() { };
 	});
 
 	window.prefetchFirstPages = function() {
-		jmtyler.memory.reload(function() {
-			var subscriptions = jmtyler.memory.get('subscriptions');
-			Promise.all(subscriptions.map(function(sub) {
-				return fetchSubscriptionPage(sub, 0).then(function(res) {
-					sub.firstPage = res.items.map(function(item) {
-						return item.id.videoId;
+		jmtyler.db.connect().then(() => {
+			jmtyler.db.fetchAll('Subscriptions').then((subscriptions) => {
+				Promise.all(subscriptions.map(function(sub) {
+					return fetchSubscriptionPage(sub, 0).then(function(res) {
+						sub.firstPage = res.items.map(function(item) {
+							return item.id.videoId;
+						});
+						return jmtyler.db.update('Subscriptions', sub);
 					});
+				})).then(function() {
+					var totalUnwatchedCount = 0;
+					subscriptions.forEach(function(sub) {
+						if (sub.bubbleCount) {
+							totalUnwatchedCount += sub.unwatchedCount;
+						}
+					});
+					chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+				}).catch(function() {
+					console.error('ERROR', arguments);
+				}).then(() => {
+					jmtyler.db.close();
 				});
-			})).then(function() {
-				jmtyler.memory.set('subscriptions', subscriptions);
-				var totalUnwatchedCount = 0;
-				subscriptions.forEach(function(sub) {
-					if (sub.bubbleCount) {
-						totalUnwatchedCount += sub.unwatchedCount;
-					}
-				});
-				chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
-			}).catch(function() {
-				console.error('ERROR', arguments);
 			});
 		});
 	};
