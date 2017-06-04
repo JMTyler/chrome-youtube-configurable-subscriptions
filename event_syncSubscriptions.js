@@ -4,7 +4,6 @@ var syncSubscriptions = function() { };
 (function() {
 	console.log(new Date().toLocaleTimeString(), 'loading event page');
 	jmtyler.settings.init('sync');
-	jmtyler.memory.init('sync');
 
 	syncSubscriptions = function() {
 		console.log(new Date().toLocaleTimeString(), 'fetching!');
@@ -172,5 +171,65 @@ var syncSubscriptions = function() { };
 				});
 			});
 		});
+	};
+
+	window.addSubscription = function(sub) {
+		const DEFAULTS = {
+			isBacklog      : false,
+			bubbleCount    : true,
+			firstPage      : [],
+			backlog        : [],
+			unwatched      : [],
+			unwatchedCount : 0,
+		};
+
+		if (!sub.channelId) {
+			return Promise.reject(new Error('All subscriptions must include a "channelId" field.'));
+		}
+
+		if (!sub.label) {
+			return Promise.reject(new Error('All subscriptions must include a "label" field.'));
+		}
+
+		if (!sub.query) {
+			return Promise.reject(new Error('All subscriptions must include a "query" field.'));
+		}
+
+		Object.keys(DEFAULTS).forEach((key) => {
+			if (typeof sub[key] === 'undefined') {
+				sub[key] = DEFAULTS[key];
+			}
+		});
+
+		fetchSubscriptionPage(sub, 0).then(function(res) {
+			sub.firstPage = res.items.map(function(item) {
+				return item.id.videoId;
+			});
+
+			return jmtyler.db.connect().then(() => {
+				return jmtyler.db.insert('Subscriptions', sub).then(() => {
+					return jmtyler.db.close();
+				});
+			});
+		}).then(function() {
+			if (sub.bubbleCount) {
+				chrome.browserAction.getBadgeText({}, function (text) {
+					var totalUnwatchedCount = parseInt(text, 10);
+					totalUnwatchedCount += sub.unwatchedCount;
+					chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
+				});
+			}
+		}).then(() => {
+			console.log(`Successfully added new subscription "${sub.label}"`);
+		}).catch(function() {
+			console.error('ERROR', arguments);
+		});
+	};
+	window.addSubscription.spec = {
+		isBacklog   : false,
+		bubbleCount : true,
+		channelId   : '',
+		label       : '',
+		query       : '',
 	};
 })();
