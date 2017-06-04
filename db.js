@@ -45,6 +45,9 @@ jmtyler.db = (function()
 						var store = db.createObjectStore('Subscriptions', { keyPath: 'label' });
 						store.createIndex('IX_things_bleep', 'bleep', { unique: false });
 						store.createIndex('IX_things_bloop', 'bloop', { unique: true });
+
+						// TODO: migrate existing subscriptions from localstorage into indexedDB
+						// TODO: then run an immediate resync
 					}
 
 					// We don't resolve or set _db because `onsuccess` should still get called.

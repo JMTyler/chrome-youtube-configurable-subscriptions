@@ -15,45 +15,46 @@ var loadView = function(channel) {
 
 var loadChannelList = function() {
 	previousView = null;
-	var subscriptions = jmtyler.memory.get('subscriptions');
 
-	var $li;
-	var $lblStatus = $('#lblStatus');
-	var $content = $('#content');
+	jmtyler.db.fetchAll('Subscriptions').then((subscriptions) => {
+		var $li;
+		var $lblStatus = $('#lblStatus');
+		var $content = $('#content');
 
-	$lblStatus.html('');
-	$content.html('');
-	$btnBack.css('display', 'none');
+		$lblStatus.html('');
+		$content.html('');
+		$btnBack.css('display', 'none');
 
-	var $lstChannels = $('<ul/>');
-	var channels = {};
-	subscriptions.forEach(function(sub, i) {
-		var channel = sub.label.split('/')[0];
-		var count = sub.unwatchedCount;
-		if (typeof channels[channel] == 'undefined') {
-			channels[channel] = 0;
+		var $lstChannels = $('<ul/>');
+		var channels = {};
+		subscriptions.forEach(function(sub) {
+			var channel = sub.label.split('/')[0];
+			var count = sub.unwatchedCount;
+			if (typeof channels[channel] == 'undefined') {
+				channels[channel] = 0;
+			}
+			if (sub.bubbleCount) {
+				channels[channel] += count;
+			}
+		});
+
+		for (var key in channels) {
+			if (!channels.hasOwnProperty(key)) {
+				continue;
+			}
+
+			$li = $('<li/>');
+			if (channels[key] > 0) {
+				$li.css('background', '#f9d1d1');
+			}
+			$li.html('<div>' + key + ' (' + channels[key] + ')' + '</div>');
+			$li.click(loadSubscriptionList.bind(this, key));
+
+			$lstChannels.append($li);
 		}
-		if (sub.bubbleCount) {
-			channels[channel] += count;
-		}
+		$content.html($lstChannels);
+		$lstChannels.menu();
 	});
-
-	for (var key in channels) {
-		if (!channels.hasOwnProperty(key)) {
-			continue;
-		}
-
-		$li = $('<li/>');
-		if (channels[key] > 0) {
-			$li.css('background', '#f9d1d1');
-		}
-		$li.html('<div>' + key + ' (' + channels[key] + ')' + '</div>');
-		$li.click(loadSubscriptionList.bind(this, key));
-
-		$lstChannels.append($li);
-	}
-	$content.html($lstChannels);
-	$lstChannels.menu();
 };
 
 var loadSubscriptionList = function(channel) {
@@ -68,33 +69,34 @@ var loadSubscriptionList = function(channel) {
 	$content.html('');
 
 	var $lstSubs = $('<ul/>');
-	var subscriptions = jmtyler.memory.get('subscriptions');
-	subscriptions.forEach(function(sub, i) {
-		var labelParts = sub.label.split('/');
-		var thisChannel = labelParts[0];
-		if (thisChannel != channel) {
-			return;
-		}
+	jmtyler.db.fetchAll('Subscriptions').then((subscriptions) => {
+		subscriptions.forEach(function(sub) {
+			var labelParts = sub.label.split('/');
+			var thisChannel = labelParts[0];
+			if (thisChannel != channel) {
+				return;
+			}
 
-		$li = $('<li/>');
-		if (sub.unwatchedCount > 0 && sub.bubbleCount) {
-			$li.css('background', '#f9d1d1');
-		}
-		$li.html('<div>' + labelParts[1] + ' (' + sub.unwatchedCount + ')' + '</div>');
-		$li.click(function() {
-			loadSubscription(i);
+			$li = $('<li/>');
+			if (sub.unwatchedCount > 0 && sub.bubbleCount) {
+				$li.css('background', '#f9d1d1');
+			}
+			$li.html('<div>' + labelParts[1] + ' (' + sub.unwatchedCount + ')' + '</div>');
+			$li.click(function() {
+				loadSubscription(sub.label);
+			});
+
+			$lstSubs.append($li);
 		});
 
-		$lstSubs.append($li);
+		$lblStatus.text(channel);
+		$btnBack.css('display', '');
+		$content.html($lstSubs);
+		$lstSubs.menu();
 	});
-
-	$lblStatus.text(channel);
-	$btnBack.css('display', '');
-	$content.html($lstSubs);
-	$lstSubs.menu();
 };
 
-var loadSubscription = function(index) {
+var loadSubscription = function(label) {
 	var $lblStatus = $('#lblStatus');
 	var $content = $('#content');
 
@@ -102,25 +104,24 @@ var loadSubscription = function(index) {
 	$lblStatus.html('');
 	$content.html('');
 
-	var subscriptions = jmtyler.memory.get('subscriptions');
-	var subscription = subscriptions[index];
+	jmtyler.db.fetchById('Subscriptions', label).then((subscription) => {
+		// set previousView to the `channel` key for this subscription
+		previousView = subscription.label.split('/')[0];
 
-	// set previousView to the `channel` key for this subscription
-	previousView = subscription.label.split('/')[0];
+		var $lstVids = $('<ul/>');
+		loadSubscriptionPage(subscription, 0, $lstVids, subscriptions, []).then(function() {
+			$lblStatus.text(subscription.label.replace('/', ' :: '));
+			$btnBack.css('display', '');
 
-	var $lstVids = $('<ul/>');
-	loadSubscriptionPage(subscription, 0, $lstVids, subscriptions, index, []).then(function() {
-		$lblStatus.text(subscription.label.replace('/', ' :: '));
-		$btnBack.css('display', '');
-
-		$content.html($lstVids);
-		$lstVids.menu();
-	}).catch(function() {
-		$lblStatus.text('ERROR: ' + JSON.stringify(arguments));
+			$content.html($lstVids);
+			$lstVids.menu();
+		}).catch(function() {
+			$lblStatus.text('ERROR: ' + JSON.stringify(arguments));
+		});
 	});
 };
 
-var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions, subIndex, subItems)
+var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions, subItems)
 {
 	return fetchSubscriptionPage(subscription, page).then(function(res) {
 		var start = 0;
@@ -206,8 +207,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 						if (backlogIndex > -1) {
 							subscription.backlog.splice(backlogIndex, 1);
 						}
-						subscriptions[subIndex] = subscription;
-						jmtyler.memory.set('subscriptions', subscriptions);
+						jmtyler.db.update('Subscriptions', subscription);
 
 						if (subscription.bubbleCount) {
 							chrome.browserAction.getBadgeText({}, function (text) {
@@ -220,8 +220,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 						subscription.unwatchedCount++;
 						subscription.unwatched.push(videoId);
 						subscription.backlog.push(item);
-						subscriptions[subIndex] = subscription;
-						jmtyler.memory.set('subscriptions', subscriptions);
+						jmtyler.db.update('Subscriptions', subscription);
 
 						if (subscription.bubbleCount) {
 							chrome.browserAction.getBadgeText({}, function (text) {
@@ -260,7 +259,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 								if (backlogIndex > -1) {
 									subscription.backlog.splice(backlogIndex, 1);
 								}
-								subscriptions[subIndex] = subscription;
+								jmtyler.db.update('Subscriptions', subscription);
 
 								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
 							} else if (!markAsWatched && isWatched) {
@@ -270,12 +269,11 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 								}
 								subscription.unwatched.push(videoId);
 								subscription.backlog.push(item);
-								subscriptions[subIndex] = subscription;
+								jmtyler.db.update('Subscriptions', subscription);
 
 								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
 							}
 						}
-						jmtyler.memory.set('subscriptions', subscriptions);
 						chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
 					});
 
@@ -305,7 +303,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 								if (backlogIndex > -1) {
 									subscription.backlog.splice(backlogIndex, 1);
 								}
-								subscriptions[subIndex] = subscription;
+								jmtyler.db.update('Subscriptions', subscription);
 
 								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
 							} else if (!markAsWatched && isWatched) {
@@ -315,12 +313,11 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 								}
 								subscription.unwatched.push(videoId);
 								subscription.backlog.push(item);
-								subscriptions[subIndex] = subscription;
+								jmtyler.db.update('Subscriptions', subscription);
 
 								renderWatchedState($lstVids.find('> li.videoIndex-' + k), !isWatched);
 							}
 						}
-						jmtyler.memory.set('subscriptions', subscriptions);
 						chrome.browserAction.setBadgeText({ text: totalUnwatchedCount.toString() });
 					});
 
@@ -354,8 +351,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 						if (backlogIndex > -1) {
 							subscription.backlog.splice(backlogIndex, 1);
 						}
-						subscriptions[subIndex] = subscription;
-						jmtyler.memory.set('subscriptions', subscriptions);
+						jmtyler.db.update('Subscriptions', subscription);
 
 						if (subscription.bubbleCount) {
 							chrome.browserAction.getBadgeText({}, function (text) {
@@ -380,7 +376,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 		var $li = $('<li/>');
 		$li.html('<div style="text-align: center;">' + 'Load More' + '</div>');
 		$li.click(function(event) {
-			loadSubscriptionPage(subscription, page + 1, $lstVids, subscriptions, subIndex, subItems).then(function() {
+			loadSubscriptionPage(subscription, page + 1, $lstVids, subscriptions, subItems).then(function() {
 				$lstVids.menu('refresh');
 			});
 		});
@@ -458,9 +454,11 @@ var fetchSubscriptionPage = function(sub, page)
 	});
 };
 
+// TODO: We will probably need an event handler for when the popup closes, so we can subsequently close the DB connection.
+
 document.addEventListener('DOMContentLoaded', function() {
 	jmtyler.settings.init('sync');
-	jmtyler.memory.init('sync', function() {
+	jmtyler.db.connect().then(() => {
 		loadChannelList();
 	});
 
