@@ -1,6 +1,6 @@
 'use strict';
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 7;
 const DATABASE_NAME  = 'YTConfSub';
 
 var jmtyler = jmtyler || {};
@@ -22,6 +22,9 @@ jmtyler.db = (function()
 			}
 
 			return new Promise((resolve, reject) => {
+				console.log('Initializing localstorage.');
+				jmtyler.memory.init('local', () => {
+				console.log('  ...localstorage initialized.');
 				// IDBRequest / IDBOpenDBRequest
 				var connection = indexedDB.open(DATABASE_NAME, SCHEMA_VERSION);
 
@@ -37,16 +40,53 @@ jmtyler.db = (function()
 					return reject(new Error('IndexedDB Connection BLOCKED'));
 				};
 
+				var performUpgrade = Promise.resolve();
 				connection.onupgradeneeded = (ev) => {
-					var db = connection.result;
+					var db = ev.target.result;
 
 					if (ev.oldVersion < 1) {
 						// TODO: keyPath is PK? can it be omitted? do I want to?
 						var store = db.createObjectStore('Subscriptions', { keyPath: 'label' });
-						store.createIndex('IX_things_bleep', 'bleep', { unique: false });
-						store.createIndex('IX_things_bloop', 'bloop', { unique: true });
+						//store.createIndex('IX_things_bleep', 'bleep', { unique: false });
+						//store.createIndex('IX_things_bloop', 'bloop', { unique: true });
 
 						// TODO: migrate existing subscriptions from localstorage into indexedDB
+						// TODO: then run an immediate resync
+					}
+					if (ev.oldVersion < 7) {
+						// TODO: keyPath is PK? can it be omitted? do I want to?
+						console.log('Overwriting promise.');
+						performUpgrade = new Promise((resolve, reject) => {
+							var subscriptions = jmtyler.memory.get('subscriptions');
+							var t = ev.target.transaction;
+							var store = t.objectStore('Subscriptions');
+
+							console.log('Starting upgrade.');
+							subscriptions.reduce((previous, sub, i) => {
+								return previous.then(() => {
+									console.log(`Sub promise #${i+1}.`);
+									return new Promise((resolve, reject) => {
+										var request = store.add(sub);
+										request.onsuccess = () => {
+											console.log(`  Promise #${i+1} complete.`);
+											return resolve();
+										};
+										request.onerror = () => {
+											console.log(`  Promise #${i+1} failed.`);
+											return reject();
+										};
+									});
+								});
+							}, Promise.resolve()).then(() => {
+								console.log('Upgrade complete.');
+								return resolve();
+							}).catch((err) => {
+								console.log('Upgrade failed; aborting transaction.', err);
+								t.abort();
+								return reject();
+							});
+						});
+
 						// TODO: then run an immediate resync
 					}
 
@@ -55,10 +95,18 @@ jmtyler.db = (function()
 				};
 
 				connection.onsuccess = (ev) => {
+					console.log('Connected.');
 					// IDBDatabase
 					_setDatabase(connection.result);
-					return resolve(this);
+					return performUpgrade.then(() => {
+						console.log('Connection established. Continuing with application.');
+						return resolve(this);
+					}).catch((err) => {
+						console.log('Connection/Upgrade failed. Ignoring since connection event handlers should pick up transaction abortion.', err);
+						// Swallow the error; the upgrade transaction must've been aborted, so the error should already be handled above.
+					});
 				};
+				});
 			});
 		},
 

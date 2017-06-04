@@ -81,6 +81,8 @@ var syncSubscriptions = function() { };
 					jmtyler.db.close();
 				});
 			});
+		}).catch((err) => {
+			console.error('Failed to connect to database.', err);
 		});
 	};
 
