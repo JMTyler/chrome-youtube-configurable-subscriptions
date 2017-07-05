@@ -109,7 +109,7 @@ var loadSubscription = function(label) {
 		previousView = subscription.label.split('/')[0];
 
 		var $lstVids = $('<ul/>');
-		loadSubscriptionPage(subscription, 0, $lstVids, subscriptions, []).then(function() {
+		loadSubscriptionPage(subscription, 0, $lstVids, []).then(function() {
 			$lblStatus.text(subscription.label.replace('/', ' :: '));
 			$btnBack.css('display', '');
 
@@ -121,7 +121,7 @@ var loadSubscription = function(label) {
 	});
 };
 
-var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions, subItems)
+var loadSubscriptionPage = function(subscription, page, $lstVids, subItems)
 {
 	return fetchSubscriptionPage(subscription, page).then(function(res) {
 		var start = 0;
@@ -376,7 +376,7 @@ var loadSubscriptionPage = function(subscription, page, $lstVids, subscriptions,
 		var $li = $('<li/>');
 		$li.html('<div style="text-align: center;">' + 'Load More' + '</div>');
 		$li.click(function(event) {
-			loadSubscriptionPage(subscription, page + 1, $lstVids, subscriptions, subItems).then(function() {
+			loadSubscriptionPage(subscription, page + 1, $lstVids, subItems).then(function() {
 				$lstVids.menu('refresh');
 			});
 		});
